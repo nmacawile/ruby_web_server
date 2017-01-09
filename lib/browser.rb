@@ -4,6 +4,12 @@ host = 'localhost'     				# The web server
 port = 2000                          # Default HTTP port
 path = "/index.html"          			# The file we want 
 
+
+puts "What do you want to do?: "
+puts "[G] visit the viking main page"
+puts "[P] register a viking for raid"
+gets "> "
+
 # This is the HTTP request we send to fetch a file
 request = 	"GET #{path} HTTP/1.0\r\n"\
 			"From: someone@emaildomain.com\r\n"\
