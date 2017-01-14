@@ -1,45 +1,71 @@
 require 'socket'
- 
-host = 'localhost'     				# The web server
-port = 2000                          # Default HTTP port
-#path = "/index.html"          			# The file we want 
+require 'json'   
+
+$host = 'localhost'     				
+$port = 3000                     
 
 def generate_get_request(path)
-	"GET #{path} HTTP/1.0\r\n"\
+	"GET #{path} HTTP/1.1\r\n"\
+	"Host: #{$host}:#{$port}\r\n"\
 	"From: someone@emaildomain.com\r\n"\
-	"User-Agent: HTTPTool/1.0\r\n\r\n"
+	"User-Agent: HTTPTool/1.1\r\n\r\n"
 end
 
 def generate_post_request(path, json_data)
-	"POST #{path} HTTP/1.0\r\n"\
-	"From: frog@jmarshall.com\r\n"\
-	"User-Agent: HTTPTool/1.0\r\n"\
-	"Content-Type: application/x-www-form-urlencoded\r\n"\
-	"Content-Length: #{json_data.size}\r\n\r\n"
+	"POST #{path} HTTP/1.1\r\n"\
+	"Host: #{$host}:#{$port}\r\n"\
+	"From: server@domain.com\r\n"\
+	"User-Agent: HTTPTool/1.1\r\n"\
+	"Content-Type: application/json\r\n"\
+	"Content-Length: #{json_data.size}\r\n\r\n"\
+	"#{json_data}\r\n"
 end
+loop {
+	request = nil
+	while request.nil? do
+		puts "What do you want to do?: "
+		puts "[M] visit the viking main page"
+		puts "[U] visit a specific URL"
+		puts "[R] register a viking for raid"
+		puts "[V] view all registered vikings"
+		puts "[Q] quit"
+		print "> "
+		action = gets.chomp.upcase
+		case action
+		when "M"
+			request = generate_get_request("/index.html")
+		when "U"
+			puts "Type in the URL of the page you want to visit: "
+			print "#{$host}:#{$port}/"
+			url = gets.chomp
+			request = generate_get_request("/#{url}")
+		when "R"
+			print "name: "
+			name = gets.chomp
+			print "email: "
+			email = gets.chomp
+			params = {}
+			params['viking'] = {}
+			params['viking']['name'] = name
+			params['viking']['email'] = email
 
+			request = generate_post_request("/thanks", params.to_json)	
+			puts request
+		when "V"
+			request = generate_get_request("/vikings")
+		when "Q"
+			exit
+		end
+	end
+	socket = TCPSocket.open($host, $port)
 
-puts "What do you want to do?: "
-puts "[G] visit the viking main page"
-puts "[P] register a viking for raid"
-print "> "
+	puts "Sending request to #{$host}:#{$port}."
 
-action = gets.chomp.upcase
-# This is the HTTP request we send to fetch a file
-request = nil
-if action == "G"
-	request = generate_get_request("/index.html")
-elsif action == "P"
-	request = generate_post_request("/index.html")
-end
-#puts request
+	socket.print(request)
 
-socket = TCPSocket.open(host, port)  # Connect to server
+	puts "Response received:"
+	response = socket.read 
+	puts response			
 
-socket.print(request)               # Send request
-response = socket.read              # Read complete response
-puts response						# Print complete response
-# Split response at first blank line into headers and body
-headers,body = response.split("\r\n\r\n", 2) 
-#print headers
-#print body                         # And display it
+	headers, body = response.split("\r\n\r\n", 2)
+}
